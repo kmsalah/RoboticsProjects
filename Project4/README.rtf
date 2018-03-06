@@ -1,0 +1,100 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf100
+{\fonttbl\f0\froman\fcharset0 Times-Roman;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww17060\viewh19560\viewkind0
+\deftab720
+\pard\pardeftab720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 CSCE 274\
+Project 03\
+Group 5: Khalid Salah, Julian Hong, Logan Fisher\
+\
+The entire project runs off 3 files\
+-linguist.py\
+-jaguar.py\
+-theWall.py\
+\
+Linguist.py\
+---------------\
+-this file imports:\
+	-serial: for establishing a serial connection\
+	-time: for allowing pauses between operations\
+\
+-This file contains the class Linguist, which serves to handle raw communication between the Raspberry Pi and the iRobot.\
+-The class's constructor calls serialConnection() which sets the serialConnectionM member variable of the class Linguist. \
+-The class also handles reading from the serial connection port and closing the serial connection.\
+-This class also gives the robot the ability to send commands to the serial connection by sending in either a list of integers or one integer. These integers represent specific bytes that represent certain actions the robot takes when receiving these bytes\
+\
+Jaguar.py\
+--------------\
+-This file imports and depends on \
+	- Linguist: to create a Linguist to handle serial connections\
+	- serial: debugging\
+	- struct: to unpack bytes\
+	- time: to allow pauses between operations\
+\
+This file contains to dictionaries, Buttons and States, that contain their respective codes. Such as Buttons containing the hex code representing the Clock button on the iRobot. And States containing the state code for Full mode.\
+\
+This file also contains the class Jaguar which represents the being of the robot. The Jaguar contains a Linguist so that it can communicate with the iRobot. The Jaguar is nothing without it's Linguist.\
+\
+The class Jaguar creates a Linguist on initialization, essentially establishing a serial connection, and then changes its state to Start and then Passive. \
+\
+changeState(self, newState)\
+The Jaguar can change it's state by receiving the corresponding code for the respective state and then sending that code through a command with the Linguist. The Linguist does all the talking. Cause a Jaguar can't speak English, or code...\
+\
+readButton(self, button):\
+The Jaguar can also tell when one of it's buttons has been pushed. The Jaguar asks the Linguist to request sensor data corresponding to the button's on the iRobot. Then the Jaguar's Linguist reads in a byte from the serial port and decides if that byte is the same button as the button that the Jaguar is checking for.\
+\
+readBumperandWheelSensors(self):\
+The Jaguar can tell when a bumper is hit or if a wheel has dropped. Again, Jaguar asks Linguist to request sensor data corresponding to the bump and wheel packet. Once the iRobot sends the data back, we rely on Linguist to reads the byte and checks to see what it returns. If it\'92s greater than 3, we know at least one wheel dropped. If it returns a 3, then the iRobot had both bumpers activated. If 2, only the left bumper was triggered. If 1, only the right bumper was triggered. And if it returns 0, then nothing was triggered.\
+\
+readCliffState(self): \
+Jaguar also reads the cliff states. To do so, we tell Linguist to request another sensor data corresponding to the all the cliff states. This means we have to request for cliff left, cliff front left, cliff right, and cliff front right. If the data returned from the iRobot is greater than or equal to 1, then we know at least one cliff state is activated. If it returns a 0, then no cliffs are activated. \
+\
+playSong(self, songNum):\
+This method in Jaguar is only called when the iRobot has triggered the warning song. We start by writing an if statement to determine which song is called. To create a song, we named/numbered our song and we also have how many notes to play within the length of the song. Next we send the note and the duration of how long you want the note to be played for. We repeat this until the number of notes added is the same as the number of notes we want within the song.\
+\
+drive(self, rVelocity, lVelocity):\
+The Jaguar can also drive when told to do so. It just needs to know what speed to move it's two wheels. The Jaguar is a little knowledgeable, so it takes those two integers (rVelocity and lVelocity), and converts them into high and low bytes for the robot to read because the drive opcode of the iRobot takes in a drive command, a high rVelocity byte, a low rVelocity byte, a high lVelocity byte, and a low lVelocity byte. Jaguar packs it all up and has it's Linguist send the command.\
+\
+driveStraight(self, leftV, rightV):\
+This method is the same as the drive method except we call this only when we know the iRobot wants to drive straight.\
+\
+readLightBump(self):\
+ReadLightBump requests data from the iRobot\'92s infrared sensors. We start by sending in the sensor data request and the right sensor following it. The data returned from the iRobot is a two byte unsigned integer. We then check if it\'92s data is actually two, and if it is we unpack the data, find the square root of it, and finally append it to an array. We repeat this step for the light bump center left signal and the light bump center right signal. We add both the outputs for light bump center left and light bump center right to center to know if there\'92s a wall in front of it.\
+\
+readDock(self):\
+ReadDock requests one byte data from the iRobot\'92s sensors. We initialize an array only to collect all the data into it. There\'92s a dictionary of what the outputs mean in the function so we know what section corresponds to what is being read by the iRobot.\
+\
+TheDock.py\
+--------------\
+-This file imports and depends on\
+	- Linguist\
+	- Jaguar\
+	- threading\
+\
+The purpose of this file is to have the iRobot be able to follow a wall with a minimal oscillation while being a set distance away from the wall, using a PD controller.\
+\
+The Drive() function has the iRobot drive in a straight line while driving is true. If driving is false, the iRobot should break out the while loop and stops the iRobot.\
+\
+ListenIR() begins our PD controller. After the PD controller outputs either how far it is away from the wall, or how close it is to the wall, the controller either moves the iRobot closer to the wall or further away from the wall. We control the wheels\'92 speeds by setting each wheel its own speed. Once the dock has seen the iRobot, it breaks out the while loop to see which side it\'92s on and starts moving towards it. Once close it readjusts itself only to drive straight onto the dock without knocking it over. Only once it\'92s connected to the power source, the happy song starts playing.\
+\
+ListenDock() is a never ending while loop. We check to see which side the iRobot is compared to the dock.\
+\
+The ListenBumps() function requests for the bump state from the iRobot first. Once it has access to the bump state, it\'92ll check to see if it\'92s wheel drop, bump left, bump right, or bump both. If it\'92s wheel drop, it\'92ll print that the wheels dropped and stop driving and running. If it bumped left, it should print out rotating left, rotate clockwise 180 degrees, and then add in a variance in the range of negative thirty degrees and thirty degrees to it. If it bumped right, it should print rotating right, rotate counterclockwise 180 degrees and add in a variance also. If both bumpers were activated, it should print out bumped both, pick a random direction and rotate 180 degrees and the variance.\
+\
+ListenCliffs() is a function to detect if there is a cliff. It reads the cliff state of the robot and if there is a cliff, it prints out cliff detected and stops driving.\
+\
+The ListenButton() function is constantly listening for button clicks and checks if the \'91CLEAN\'92 button has been clicked. When that button is clicked, driving is changed to false, and that is read while drive is still equal to true.\
+\
+The file has a while loop at the end that keeps the robot and everything else from initiating until the clean button has been clicked. One that has been clicked, the robot begins driving, and listens for the button click to signal to stop.\
+\
+TO RUN THIS PROJECT\
+\
+scp -r project_02 pi@192.168.1.1:~/ # to transfer files from computer to robot\
+ssh pi@192.168.1.1 # to set connection with Raspberry Pi\
+cd project_04 # moves into the project_02\
+python theDock.py # this starts the project\
+\
+}
